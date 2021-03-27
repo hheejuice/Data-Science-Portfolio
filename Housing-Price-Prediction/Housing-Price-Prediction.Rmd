@@ -1,0 +1,545 @@
+---
+title: "Housing Price Prediction"
+output: 
+  html_document:
+    keep_md: true
+---
+
+### Introduction
+
+Price of real estate properties are dependent on a number of features such as number of rooms, size of house, and type of property. For example, someone should be ready to pay at least few more hundreds of dollars as monthly rent if he or she is looking to find a house with an additional room. While there are many drivers that can affect the house price, some of the features will have stronger effect than others, and we can use such strong predictors to predict the house price using predictive models. In this report, I will use several different models to analyze the effect of the features on price of house in Peru and Ecuador. Given that the economic and political environment of each country are different, each feature may have different impacts on price. Therefore, I will also compare two countries using relevant housing price data.
+
+### Methodology
+
+1)	Pre-Processing: I will first convert the currency into USD to maintain consistency across price data. Also, ‘0’ values from price data will be removed because it is illogical to have $0 price for houses with rooms. There could have been some error while collecting data. Next, in order to decide which column (feature) to use as price predictors, I will use my own judgment looking at the number of values. To figure out features that could help to predict the price, I will first look into the number of unique values, NA values, and blank values in each column. Then I will remove columns that have too many unique values. I will also remove columns with only one unique values, and columns with many NA and blank values, except for ‘bedroooms’ column since the source of data (Kaggle) specifically mentioned that this column will be useful for all countries other than Argentina. Then, I will split the data into two separate datasets: one for rent price and another for sale price. I will only analyze and predict for-sale price since it had larger sample size.
+
+2)	Train and Test Data: After the pre-processing, I will split the for-sale house price data into training (80%) and testing (20%) sets. I will then use several models on the train and test data, predict the housing price, and calculate the RMSE of each model for easier comparison.
+
+3)	Build model: I will build predictive and interpretable models using various R packages.
+
+4)	Compare two countries: I will compare Peruvian house price and Ecuadorian house price by analyzing models I built.
+
+### Loading Packages
+
+```{r setup, include=TRUE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+library(psych)
+library(corrplot)
+library(dplyr)
+library(caret)
+library(class)
+library(tree)
+```
+
+### Data Description
+
+For the purpose of this project, I used Peruvian and Ecuadorian housing price data sourced from Kaggle. Each dataset consists of a lot of information about real estate listing.
+
+```{r data}
+#reading Peruvian housing data
+peru = read.csv("pe_properties.csv", header = TRUE, sep = ",", stringsAsFactors = T) 
+
+#reading Ecuadorian dataset
+ecuador = read.csv("ec_properties.csv", header = TRUE, sep = ",", stringsAsFactors = T)
+
+#Descriptive statistic of original Peruvian and Ecuadorian data
+dim(peru) # the number of rows and columns
+dim(ecuador) # the number of rows and columns
+
+names(peru) #column names
+names(ecuador) #column names
+
+str(peru) # shows data structure and variable type of each column
+str(ecuador) # shows data structure and variable type of each column
+```
+
+The original Peruvian data has 124449 rows and 25 columns. The original Ecuadorian data has 143565 rows and 25 columns. The column names of both data are identical. One of the columns is ‘price’, which is the target feature. There are both numeric (continuous) variables and categorical variables in the datasets. The categorical values are stored as factor variables.
+
+Next, we will be looking at the number of misleading values in both data.
+
+```{r na}
+# function that returns the number of unique values in each column
+UniqueValue = function (x) {length(unique(x)) }
+
+# function that returns the number of NA values in each column
+NaValue = function (x) {sum(is.na(x)) }
+
+# function that returns the number of blank values in each column
+BlankValue = function (x) {sum(x=="") }
+
+# Peruvian data
+apply(peru, 2, UniqueValue) #check for number of unique values in each column
+apply(peru, 2, NaValue) #check for number of NA values in each column
+apply(peru, 2, BlankValue) #check for number of blank values in each column
+
+#Ecuadorian data
+apply(ecuador, 2, UniqueValue) #check for number of unique values in each column
+apply(ecuador, 2, NaValue) #check for number of NA values in each column
+apply(ecuador, 2, BlankValue) #check for number of blank values in each column
+```
+
+Considering the number of rows for Peruvian data is 124449, the number of unique values, NA values, and missing values in many columns – ‘rooms’, ‘surface_covered’, ‘title’, ‘description’, etc. – are very high.
+Ecuadorian data also exhibited high number of such values in most of its columns. These values may result in misleading price prediction. Therefore, I will pre-process the dataset before I further proceed into developing predictive models.
+
+### Pre-processing
+
+As discussed earlier, I will drop columns with too many unique/NA/blank values, and also those with single unique value. I will drop rows where price is 0, and will convert all price values into USD in order to facilitate comparison between Peru and Ecuador. More explanations can be found below next to or above each line of code.
+
+```{r preprocessing}
+#drop columns not needed (columns with too many unique/NA/blank values or one unique value)
+peru[,c("id", "ad_type", "start_date", "end_date", "created_on", "lat", "lon", "l1", "l3", "l4", "l5", "l6", "rooms","surface_covered", "title", "description")] <- list(NULL)
+ecuador[,c("id", "ad_type", "start_date", "end_date", "created_on", "lat", "lon", "l3", "l4", "l5", "l6", "rooms","surface_covered", "price_period","title", "description")] <- list(NULL)
+
+#drop rows where price value is 0 or NA
+peru<-peru[!(peru$price == 0),]
+peru <- peru[!is.na(peru$price),]
+ecuador<-ecuador[!(ecuador$price == 0),]
+ecuador <- ecuador[!is.na(ecuador$price),]
+
+#convert Peruvian currency and Argentine peso into USD and then remove the original currency column
+levels(peru$currency) # blank, Peruvian currency, Argentine peso
+peru <- peru[!(peru$price == ""),] # remove blank values
+X<-split(peru, peru$currency)
+peru$price <- ifelse(peru$currency == "PEN", peru$price * 0.29, peru$price) #convert the price in Peruvian currency into USD
+peru$price <- ifelse(peru$currency == "ARS", peru$price * 0.014, peru$price) #convert the price in Argentine peso int USD
+peru$currency <- NULL # remove currency column
+summary(peru)
+
+#remove rows with blank currency value for Ecuadorian data set
+levels(ecuador$currency) # only USD and blank values
+ecuador<-ecuador[!(ecuador$price == ""),] # remove blank price value
+ecuador$currency <- NULL # remove currency column
+
+levels(peru$price_period) # price_period column of Peruvian data set only has two variables - 'mensual' and blank value
+#remove price_period column from Peruvian data since it only has one unique value after removing blank values
+X<-split(peru, peru$price_period)
+peru$price_period <- NULL # remove the column
+
+levels(ecuador$l1) # has two values - 'Ecuador' and 'Estados Unidos de America'
+#remove rows where l1 is Estados Unidos de América from ecuadorian data
+#because this dataset is supposed to have Ecuadorian data only
+ecuador<-ecuador[!(ecuador$l1 == "Estados Unidos de América"),]
+ecuador$l1 <- NULL #we remove l1 since there are only 1 unique value
+
+#remove NA values from 'bedrooms', 'bathrooms', 'surface_total'
+peru <- peru[!is.na(peru$bedrooms),]
+peru <- peru[!is.na(peru$bathrooms),]
+peru <- peru[!is.na(peru$surface_total),]
+ecuador <- ecuador[!is.na(ecuador$bedrooms),]
+ecuador <- ecuador[!is.na(ecuador$bathrooms),]
+ecuador <- ecuador[!is.na(ecuador$surface_total),]
+
+#drop temporary rent data because there are only few values in it
+levels(peru$operation_type)
+peru<-peru[!(peru$operation_type =="Alquiler temporal"),]
+levels(ecuador$operation_type)
+ecuador<-ecuador[!(ecuador$operation_type =="Alquiler temporal"),]
+
+apply(peru, 2, UniqueValue) #every column now has more than 1 unique values
+apply(ecuador, 2, UniqueValue) #every column now has more than 1 unique values
+
+#check for the number of misleading values -  either NA or blank values
+#if there are none, we can proceed
+apply(peru, 2, NaValue)
+apply(peru, 2, BlankValue)
+apply(ecuador, 2, NaValue)
+apply(ecuador, 2, BlankValue)
+
+dim(peru) # number of rows and columns
+dim(ecuador) # number of rows and columns
+
+head(peru) #show pre-processed Peruvian data
+head(ecuador) #show pre-processed Ecuadorian data
+```
+
+After pre-processing, there are no more NA and missing values in the data set, and every column has more than 1 unique values. Also, all monetary values are in USD. The new Peruvian dataset now has 36018 rows and 7 columns, and the new Ecuadorian data has 57868 rows and 7 columns.
+
+Next, I will split the data into two groups - for-rent and for-sale- based on the 'operation_type' column.
+
+```{r split}
+#split rent and for sale data, and remove 'operation_type' column
+X<-split(peru, peru$operation_type)
+peru.rent <- X$Alquiler
+peru.sale <- X$Venta
+peru.sale$operation_type <- NULL
+
+X<-split(ecuador, ecuador$operation_type)
+ecuador.rent <- X$Alquiler
+ecuador.sale <- X$Venta
+ecuador.sale$operation_type <- NULL
+
+#divide the price value by thousand for ease of interpretation later stage
+#peru.sale$price <- peru.sale$price /1000
+#ecuador.sale$price <- ecuador.sale$price /1000
+
+#normalize/scale numeric values
+#peru.sale$price = scale(peru.sale$price)
+#peru.sale$bedrooms = scale(peru.sale$bedrooms)
+#peru.sale$bathrooms = scale(peru.sale$bathrooms)
+#peru.sale$surface_total = scale(peru.sale$surface_total)
+#ecuador.sale$price = scale(ecuador.sale$price)
+#ecuador.sale$bedrooms = scale(ecuador.sale$bedrooms)
+#ecuador.sale$bathrooms = scale(ecuador.sale$bathrooms)
+#ecuador.sale$surface_total = scale(ecuador.sale$surface_total)
+
+dim(peru.sale) # number of rows and columns
+dim(ecuador.sale) # number of rows and columns
+
+head(peru.sale) #show pre-processed Peruvian sale data
+head(ecuador.sale) #show pre-processed Ecuadorian sale data
+
+
+```
+
+Remaining columns of for-sale price data after the pre-processing are 'price', the target feature, and 'l2', 'bedrooms', 'bathrooms', 'surface_total', 'proprety_type' which are going to be used as price predictors. Note that l2 and property_type are categorical variables. I chose to analyze for-sale data due to its bigger sample size.
+
+### Analysis
+
+#### Develop a predictive model of the published price:
+
+As discussed earlier in the Methodology section, I will split the data into two sets: training and testing set. The 80% training set will be used to fit the predictive model I developed, and 20% testing set will be used for tests.
+
+Column 'l2' and 'property_type' will be temporarily removed from the data, because not every unique values in those two columns of Peruvian data was present in Ecuadorian data, and vice versa - which will make the country comparison complicated.
+
+```{r predict}
+# remove l2 and property_type column - values didn't match
+peru.sale1 <- subset(peru.sale, select = -c(l2, property_type))
+ecuador.sale1 <- subset(ecuador.sale, select = -c(l2, property_type) )
+
+#Peruvian data
+#make training (80%) and testing (20%) set using pre-processed for sale data
+set.seed(123)
+train = sample(1:nrow(peru.sale1), 0.8*nrow(peru.sale1))
+peru.train = peru.sale1[train,]
+peru.test = peru.sale1[-train,]
+dim(peru.train)
+dim(peru.test)
+
+#Ecuadorian data
+#training 80% and testing 20%
+set.seed(123)
+train = sample(1:nrow(ecuador.sale1), 0.8*nrow(ecuador.sale1))
+ecuador.train = ecuador.sale1[train,]
+ecuador.test = ecuador.sale1[-train,]
+dim(ecuador.train)
+dim(ecuador.test)
+```
+
+The number of observations in training and testing set of Peruvian data was 21982 and 5496, respectively. The number of observations in training and testing set of Ecuadorian data was 29719 and 7430, respectively. The number of columns including the target feature was 4 for both data
+
+After creating training and testing set, I decided to use linear regression and k-Nearest Neighbor (KNN) models to predict the price because the dependent variable (target feature) we have is continuous variable. Some other models such as logistic regression works better with categorical dependent (outcome) variables. SVM and other classification models also works better with binary dependent variables.
+
+1) Linear Regression
+
+1-1) Peru
+
+Below shows the result of linear regression on Peruvian data. Column 'bedrooms', 'bathrooms', and 'surface_total' will be used to describe 'price'.
+
+```{r lmperu}
+options(scipen = 999)
+peru.lm = lm(price ~ .,  data = peru.train)
+summary(peru.lm)
+
+confint(peru.lm) # confidence interval for coefficient estimates
+
+# predicted price value using test set
+head(predict(peru.lm, peru.test,interval = "confidence")) #95% confidence interval
+head(predict(peru.lm, peru.test, interval = "prediction")) # 95% prediction interval
+
+#function for RMSE (Root mean squared error) calculation
+rmse <- function(y, yhat) {
+  sqrt(mean((y - yhat)^2))
+}
+
+#RMSE
+rmse(peru.train$price, predict(peru.lm))
+
+#plot(price, bedrooms + bathrooms + surface_total)
+#abline(peru.lm)
+
+#plot <- ggplot(data=peru.train,aes(x=bedrooms+bathrooms+surface_total,y=price)) + geom_point() +
+#  stat_smooth(method = "lm", se = FALSE)
+#plot
+
+#plot <- ggplot(data=peru.test,aes(x=bedrooms+bathrooms+surface_total,y=price)) + geom_point() +
+#  stat_smooth(method = "lm", se = FALSE)
+#plot
+
+# don't include this???
+#diagnostic plots
+#par(mfrow=c(2,2))
+#plot(peru.lm)
+```
+
+The 95% confidence interval associated with 2 bedrooms, 2 bathrooms, and 70 surface_total is between $186891.4 and $209664.0. The 95% prediction interval is (-1173413, 1569968). Prediction interval is much wider than confidence interval, but both intervals are centered around the same predicted price value - $198277.7 for a property with 2 bedrooms, 2 bathrooms, and 70 surface_total.
+
+The adjusted r squared for the Peruvian data linear regression model is 0.08949 and residual standard error is 699800. The RMSE is 699728.6.  
+
+1-2) Ecuador
+
+Same models and methodologies were used for Ecuadorian data. Below shows the result of linear regression model on it.
+
+```{r lmecuador}
+options(scipen = 999)
+ecuador.lm = lm(price ~ .,  data = ecuador.train)  
+summary(ecuador.lm)
+
+confint(peru.lm)
+
+# predicted price value
+head(predict(ecuador.lm, ecuador.test,interval = "confidence")) #95% confidence interval
+head(predict(ecuador.lm, ecuador.test, interval = "prediction")) # 95% prediction interval
+
+#rmse
+rmse(ecuador.train$price, predict(ecuador.lm)) 
+
+#plot(price, bedrooms + bathrooms + surface_total)
+#abline(peru.lm)
+```
+
+For the Ecuadorian data, the 95% confidence interval associated with 3 bedrooms, 2 bathrooms, and 115 surface_total is between $109723.9 and $115838.1. The 95% prediction interval is (-298511.9, 524071.0). Prediction interval is much wider than confidence interval, but both intervals are centered around the same predicted price value - $112779.5 for a property with 3 bedrooms, 2 bathrooms, and 115 surface_total.
+
+The adjusted r squared for the Ecuadorian data linear regression model is 0.1577 and residual standard error is 209800. The RMSE is 209818.
+
+2) k-Nearest Neighbors (KNN) Model
+
+1-1) Peru
+
+Below is the result of k-Nearest Neighbor (Knn) model ran on the same for for-sale Peruvian property data.
+
+```{r knnperu}
+set.seed(123)
+model <- train(
+  price~., data = peru.train, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 10
+  )
+model
+model$bestTune
+
+#predicted values
+predictions <- model %>% predict(peru.test)
+head(predictions)
+
+#rmse
+rmse(predictions, peru.test$price)
+```
+
+The predicted values using KNN and its RMSE are shown above. The RMSE using KNN model is 703224 which is higher that that of 699728.6 in linear regression model. kNN model's high RMSE indicates that linear regression model performed better than KNN model in providing more accurate Peruvian house price prediction. 
+
+1-2) Ecuador
+
+The predicted values using KNN and its RMSE for Ecuadorian data are as follows:
+
+```{r knnecuador}
+set.seed(123)
+model <- train(
+  price~., data = ecuador.train, method = "knn",
+  trControl = trainControl("cv", number = 10),
+  preProcess = c("center","scale"),
+  tuneLength = 10
+  )
+model
+model$bestTune
+predictions <- model %>% predict(ecuador.test)
+
+#predicted values
+head(predictions)
+
+#rmse
+rmse(predictions, ecuador.test$price) 
+```
+
+The KNN model using Ecuadorian data exhibited RMSE of 160985.8. KNN presented lower RMSE than that of linear regression, indicating that kNN performed better at fitting the Ecuadorian data. Unlike how the Peruvian data had lower RMSE with linear regression model than with KNN model, the Ecuadorian data has lower RMSE with KNN model than with linear regression model. In short, the model that performed the best in each data was different. 
+
+It should be noted that while one model performed better than another, the better model still exhibited considerably high error rate. One reason for this would be having only a few independent variables as predictors. At the stage of pre-processing, many columns that had too many unique, NA, and missing values has been removed from the data to prevent having biased results. The use of a few predictors could have reduced the model predictability. Outliers and data collection errors in the original dataset could be another reason for high error rate.
+
+#### Peru vs Ecuador for housing price drivers
+
+I will examine linear regression models developed above for Peru and Ecuador in order to compare their house price driving features. I use linear regression model instead of kNN model because the former provides coefficient estimates of each predictor variable that could be very useful for comparison. 
+
+```{r lmcompare}
+summary(peru.lm)
+summary(ecuador.lm)
+```
+
+By looking at the coefficient estimates of each drivers, we can figure out their effect on house price – whether they drive the price up or down. As shown above, the coefficient estimate for 'bedrooms' is 30807.630 and that for 'bathrooms' is 98085.396 for Peruvian data. That for 'surface_total' is 7.763. For Ecuadorian data, the coefficient estimate for 'bedrooms' is 87.0055 and that for bathrooms is 56103.1221. A positive coefficient estimate indicates that as the value of independent variables increase, the value of dependent variable will also increase. Therefore, ‘Bedrooms’, ‘bathrooms’, and 'surface_total' features drive the price up in both countries. However, these price drivers are different in their magnitude yet the same in their direction. One unit increase in number of bedrooms will lead to price change of +$30807.630 in Peru, whereas it will only lead to $87.0055 price increase in Ecuador. Likewise, the number of bathrooms exhibited substantially larger impact on real estate property price in Peru than in Ecuador. One unit increase in number of bathrooms lead to price change of USD98085.396 in Peru, whereas it leads to USD56103.1221 increase in Ecuador. In contrast, the 'surface_total' had slightly more influence on price in Ecuador than in Peru.
+
+Overall, the impact of every house price drivers on Peruvian and Ecuador real estates was different in their magnitude. The number of bathrooms turned out to be important price driver in both Peru and Ecuador, although it exhibited larger impact on price in Peru than in Ecuador. The number of bedrooms was another significant predictor for Peruvian real estate property price. However, it only had very small positive impact on price in Ecuador. Total surface of a property turned out to be having larger influence on price in Ecuador than in Peru, although they exhibited smaller coefficient estimates compared to that of other predictors. This is attributed to the economic environment in Peru and Ecuador that are different to each other.
+
+#### Interpretable Model - Decision Tree
+
+I built decision tree for both countries because decision tree model is usually very interpretable with its plots being graphed. 
+
+1) Peru
+
+```{r dt}
+tree.peru = tree(price ~ . , data = peru.train)
+summary(tree.peru)  
+tree.peru
+plot(tree.peru)
+text(tree.peru, pretty = 0)
+tree.pred = predict(tree.peru, peru.test)
+table(tree.pred, peru.test$price)
+```
+By looking at above charts, we can easily observe and tell their split criteria, number of observations, deviance and predicted outcome at each level of decision tree. For example, at terminal node 5, the split criterion is surface_total > -200.5 and the number of observations is 5139. Its predicted outcome was 505700. We can also learn from the tree plot that the most important indicator of price in Peruvian data is surface_total.
+
+2) Ecuador
+
+Same logic goes with decision tree for Ecuadorian data. The information provided at each level of tree was highly interpretable.
+
+```{r dtecuador}
+tree.ecuador = tree(price ~ . , data = ecuador.train)
+summary(tree.ecuador)  
+tree.ecuador
+plot(tree.ecuador)
+text(tree.ecuador, pretty = 0)
+tree.pred = predict(tree.ecuador, ecuador.test)
+table(tree.pred, ecuador.test$price)
+```
+
+In terms of comparison, Peruvian data can be considered more interpretable among two because it has less number of branches in its decision tree plot.
+
+There certainly is a trade-off between interpretability and predictability with decision tree model. I have chosen to use decision tree model for better interpretabilities, disregarding the fact that some columns in the data were made of continuous variables. Although decision tree model still works with continuous data, it performs the best with categorical data. Therefore, although our tree model with continuous variables seems understandable when looking at the plot, the predicted values created using this model may be vastly inaccurate.
+
+### Predicted Housing Price Comparison
+
+In this section, I will create predictive models to predict the price of comparable properties in Peru and Ecuador, and compare two countries by looking at the coefficient estimates that are obtainable from linear regression model. After pre-processing for-sale property data for a clean dataframe of comparable properties, I will create training and testing set and run linear regression on them. I will not take into account the 'surface_total' column data when making comparable property criteria.
+
+1) House that has top 25% number of bedrooms and bathrooms
+
+In this section, I define comparable properties as real estate units that are in the type of 'House(Casa)', and that have top 25% number of bedrooms and bathrooms. I will remove all rows of data where the property type is not ‘Casa’(House), and where the values in 'bedrooms' and 'bathrooms' column are less than their 0.75 quantile. The end result data will be Peruvian and Ecuadorian houses that have top 25% number of bedrooms and bathrooms in their own country.
+
+```{r compare}
+# remove 'l2' column from both data because they different unique values in that column
+peru.sale2 <- subset(peru.sale, select = -c(l2))
+ecuador.sale2 <- subset(ecuador.sale, select = -c(l2))
+
+#pre-process to find comparable properties where the property type is house (Casa)
+peru.sale2 <-peru.sale2[peru.sale2$property_type == "Casa",]
+peru.sale2$property_type <- NULL
+ecuador.sale2 <-ecuador.sale2[ecuador.sale2$property_type == "Casa",]
+ecuador.sale2$property_type <- NULL
+
+#pre-process to find comparable houses that have top 25% number of bedrooms
+bedrooms.third.quartile <- quantile(peru.sale2$bedrooms,0.75, names = FALSE)
+bedrooms.third.quartile
+peru.sale2 <-peru.sale2[(peru.sale2$bedrooms > bedrooms.third.quartile),]
+bedrooms.third.quartile <- quantile(ecuador.sale2$bedrooms,0.75, names = FALSE)
+bedrooms.third.quartile
+ecuador.sale2<-ecuador.sale2[(ecuador.sale2$bedrooms > bedrooms.third.quartile),]
+
+#recreate train and test data set using comparable property data
+#Peru
+set.seed(123)
+train = sample(1:nrow(peru.sale2), 0.8*nrow(peru.sale2))
+peru.train = peru.sale2[train,]
+peru.test = peru.sale2[-train,]
+dim(peru.train) # number of observations and variables in Peruvian training set
+dim(peru.test) # number of observations and variables in Peruvian testing set
+#Ecuador
+set.seed(123)
+train = sample(1:nrow(ecuador.sale2), 0.8*nrow(ecuador.sale2))
+ecuador.train = ecuador.sale2[train,]
+ecuador.test = ecuador.sale2[-train,]
+dim(ecuador.train)
+dim(ecuador.test)
+
+#linear regression on new training set
+peru.lm2 = lm(price ~ .,  data = peru.train) 
+summary(peru.lm2)
+ecuador.lm2 = lm(price ~ .,  data = ecuador.train)
+summary(ecuador.lm2)
+
+#mean of predicted values
+mean(predict(peru.lm2, peru.test, interval = "confidence")) #95% confidence interval
+mean(predict(ecuador.lm2, ecuador.test, interval = "confidence")) #95% confidence interval
+```
+
+In the linear regression model for Peruvian data, the ‘surface_total’ feature exhibited p-values less than 0.001, and this is represented by having 3 asterisks (*) at the right end as shown above. Having small p-value indicates that the feature is statistically significant. The ‘surface_total’ also has 3 asterisks for Ecuadorian data, indicating it is also statistically significant for prediction of Ecuadorian house price. 'Bedrooms' showed 1 asterisks for Peruvian data whereas there were no asterisks (p-value < 0.01) for it in Ecuadorian data. In contrast, there are no asterisks for ‘bathrooms’ feature in both Peruvian and Ecuadorian data. This coefficient estimate analysis suggests that while ‘surface_total’ is important price driving feature in both countries, there are less or even no statistical significance for ‘bedrooms’ and 'bathrooms' feature.
+
+The mean of predicted price for comparable houses is USD823428.2 in Peru and USD486649.6 in Ecuador. This suggests that house price in Peru is predicted to be higher than that in Ecuador for comparable properties with top 25% number of bedrooms and bathrooms, when regressed on the same price drivers.
+
+2) House with number of bedrooms and bathrooms in their Interquartile Range
+
+In this section, I define comparable properties as houses (Casa) with the number of bedrooms and bathrooms in their interquartile range (IQR = Q3 - Q1). I will first remove all rows of data where the property type is not ‘Casa’(House). Then, I will only keep rows where the values in 'bedrooms' and 'bathrooms' columns are greater than or equal to 0.25 quantile AND less than or equal to 0.75 quantile. The end result data will be houses with number of bedrooms and bathrooms in their IQR.
+
+```{r compare2}
+# remove 'l2' column from both data because they different unique values in that column
+peru.sale2 <- subset(peru.sale, select = -c(l2))
+ecuador.sale2 <- subset(ecuador.sale, select = -c(l2))
+
+#pre-process to find comparable properties where the property type is house (Casa)
+peru.sale2 <-peru.sale2[peru.sale2$property_type == "Casa",]
+peru.sale2$property_type <- NULL
+ecuador.sale2 <-ecuador.sale2[ecuador.sale2$property_type == "Casa",]
+ecuador.sale2$property_type <- NULL
+
+#pre-process to find comparable houses with number of bedrooms in the Interquartile Range (IQR = Q3-Q1)
+#Peru
+bedrooms.third.quartile <- quantile(peru.sale2$bedrooms,0.75, names = FALSE)
+bedrooms.third.quartile
+bedrooms.first.quartile <- quantile(peru.sale2$bedrooms,0.25, names = FALSE)
+bedrooms.first.quartile
+#iqr <- bedrooms.third.quartile - bedrooms.first.quartile
+peru.sale2 <-peru.sale2[(peru.sale2$bedrooms >= bedrooms.first.quartile),] #number of bedrooms >= Q1
+peru.sale2 <-peru.sale2[(peru.sale2$bedrooms <= bedrooms.third.quartile),] #number of bedrooms <= Q3
+#Ecuador
+bedrooms.third.quartile <- quantile(ecuador.sale2$bedrooms,0.75, names = FALSE)
+bedrooms.third.quartile
+bedrooms.first.quartile <- quantile(ecuador.sale2$bedrooms,0.25, names = FALSE)
+bedrooms.first.quartile
+ecuador.sale2 <-ecuador.sale2[(ecuador.sale2$bedrooms >= bedrooms.first.quartile),] #number of bedrooms >= Q1
+ecuador.sale2 <-ecuador.sale2[(ecuador.sale2$bedrooms <= bedrooms.third.quartile),] #number of bedrooms <= Q3
+
+#pre-process to find comparable houses with number of bathrooms in the Interquartile Range (IQR = Q3-Q1)
+#Peru
+bathrooms.third.quartile <- quantile(peru.sale2$bathrooms,0.75, names = FALSE)
+bathrooms.third.quartile
+bathrooms.first.quartile <- quantile(peru.sale2$bathrooms,0.25, names = FALSE)
+bathrooms.first.quartile
+peru.sale2 <-peru.sale2[(peru.sale2$bathrooms >= bathrooms.first.quartile),] #number of bathrooms >= Q1
+peru.sale2 <-peru.sale2[(peru.sale2$bathrooms <= bathrooms.third.quartile),] #number of bathrooms <= Q3
+#Ecuador
+bathrooms.third.quartile <- quantile(ecuador.sale2$bathrooms,0.75, names = FALSE)
+bathrooms.third.quartile
+bathrooms.first.quartile <- quantile(ecuador.sale2$bathrooms,0.25, names = FALSE)
+bathrooms.first.quartile
+ecuador.sale2 <-ecuador.sale2[(ecuador.sale2$bathrooms >= bathrooms.first.quartile),] #number of bathrooms >= Q1
+ecuador.sale2 <-ecuador.sale2[(ecuador.sale2$bathrooms <= bathrooms.third.quartile),] #number of bathrooms <= Q3
+
+#recreate train and test data set using comparable property data
+set.seed(123)
+train = sample(1:nrow(peru.sale2), 0.8*nrow(peru.sale2))
+peru.train = peru.sale2[train,]
+peru.test = peru.sale2[-train,]
+dim(peru.train)
+dim(peru.test)
+
+set.seed(123)
+train = sample(1:nrow(ecuador.sale2), 0.8*nrow(ecuador.sale2))
+ecuador.train = ecuador.sale2[train,]
+ecuador.test = ecuador.sale2[-train,]
+dim(ecuador.train)
+dim(ecuador.test)
+
+#linear regression
+peru.lm2 = lm(price ~ .,  data = peru.train) 
+summary(peru.lm2)
+ecuador.lm2 = lm(price ~ .,  data = ecuador.train)
+summary(ecuador.lm2)
+
+#mean of predicted values
+mean(predict(peru.lm2, peru.test, interval = "confidence")) #95% confidence interval
+mean(predict(ecuador.lm2, ecuador.test, interval = "confidence")) #95% confidence interval
+```
+
+In this linear regression model using different set of comparable properties, all three independent variables - 'bedrooms', 'bathrooms', and 'surface_total' - exhibited p-values less than 0.001, indicating they are all statistically significant for this section's comparable property price prediction.
+
+The mean of predicted house price in Peru is USD542475.8 and that in Ecuador is USD167614.2. This suggests that house price in Peru is predicted to be higher than that in Ecuador when regressed on the same price drivers.
+
+### Conclusion
+
+After the analysis, I conclude that the markets of Peru and Ecuador are different to each other in general, although there are some similarities as well. First of all, the model that performed the best was different in two countries as discussed earlier in this report. Additionally, although the housing price driver comparison section showed that all three independent variables used in the model - ‘bedrooms’, 'bathrooms' and ‘surface_total’ - have positive effects on price in both countries, they were clearly different in their magnitude. Furthermore, even the sign of coefficients became different when we looked at comparable properties in two countries later in this report. The sign of coefficient estimates was also changing with different set of comparable properties. Considering the geographical closeness of Peru and Ecuador, I thought their markets would be similar in many perspectives. In fact, however, this real estate property study suggests that there are more differences than similarities between Peruvian and Ecuadorian housing markets.
+
