@@ -171,7 +171,7 @@ bar
 Above chart shows top 10 countries by number of movies on Netflix. According to this chart, the United States had the most number of movies on Netflix.
 
 2) World Map
-```{r map, include, results='hide'}
+```{r map, include=T, results='hide'}
 spdf <- joinCountryData2Map(movie_country, joinCode="NAME", nameJoinColumn="country")
 mapParams <- mapCountryData(spdf,
                nameColumnToPlot="count",
