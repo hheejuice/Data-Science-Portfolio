@@ -12,7 +12,7 @@ For better portfolio browsing experience, please check out [Portfolio](https://h
   
       *Used Packages: tidyverse, dplyr, ggplot2, plotly, rworldmap*
   
-  <img src="Netflix-Analysis/Netflix-Analysis_files/figure-html/year-2.png" width="250"> <img src="Netflix-Analysis/Netflix-Analysis_files/figure-html/country-2.png" width="250">
+  <img src="Netflix-Analysis/Netflix-Analysis_files/figure-html/year-2.png" width="250"> <img src="Netflix-Analysis/Netflix-Analysis_files/figure-html/map-1.png" width="250">
   
   <img src="Netflix-Analysis/Netflix-Analysis_files/figure-html/genrebyyear-2.png" width="250"> <img src="Netflix-Analysis/Netflix-Analysis_files/figure-html/genrebycountry-2.png" width="250">  
   
@@ -24,6 +24,10 @@ For better portfolio browsing experience, please check out [Portfolio](https://h
       *Used Packages: tidyverse, dplyr, ggplot2, Hmisc, knitr, kableExtra*
 
 * ### Machine Learning
+  * [House Price Prediction project using ML Linear Regression and K-Nearest Neighbors](Housing-Price-Prediction/Housing-Price-Prediction.md): ndflnfln
+    
+      *Used Packages: caret, tree, class, psych, corrplot, psych*
+      
   * [project using ML Logistic Regression](https://hheejuice.github.io/Heeju_Portfolio/): ndflnfln
   * [project using ML Classification](url): ndflnfln
   * Cluster Analysis
