@@ -1,0 +1,356 @@
+---
+title: "Netflix Analysis"
+output: 
+  html_document:
+    keep_md: true
+---
+### Loading Packages
+
+```{r setup, include=TRUE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+#load required packages
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(rworldmap)
+```
+
+### Data Description
+
+For the purpose of this project, a Netflix dataset sourced from Kaggle has been used.
+
+```{r data, include = T}
+df <- read.csv("netflix_titles.csv", stringsAsFactors = F) # read data
+
+summary(df) # summary statistics
+length(df$release_year) # number of observations
+
+UniqueValue = function (x) {length(unique(x))} # shows number of unique values in each column
+apply(df, 2, UniqueValue) # number of unique values in each column
+
+sapply(df, function(x) sum(x == "")) # number of missing values
+```
+
+The original dataset consists of 7787 rows and 12 columns. All columns excluding 'show_id' and 'title' had unique values less than 7787, which is the total number of rows of this Netflix dataset. This indicates presence of duplicates in those columns. Also, many blank - "" - values has been found in 'director','cast','country','date_added', and 'rating' columns.
+
+Cleaning all misleading values at once will lead to major data loss. In order to prevent data biases, pre-processing for this dataset will be done to a minimum. Cleaning will only be done on columns in use.
+
+### Visualization
+
+In this section, only relevant columns will be pre-processed, then be used for creating visualizations. Pre-processing methodologies will be discussed under each analysis topic. 
+
+
+#### Netflix trends by year
+
+This section will investigate the Netflix trend in their contents addition by year - regardless of contents release date. Note that a movie released in 2017 can be added on Netflix in 2020. How many movies and TV shows they add to their platform each year? Does Netflix treat movies and TV shows differently?
+
+The 'date_added' column was originally in 'month day, year' format as character type. Therefore, it has been converted to numeric 'year' for yearly trend analysis. Missing values in 'date_added' also has been removed for the purpose of this analysis.
+
+```{r year, include=T}
+# To investigate yearly trends, I need to eliminate Month and Day data from 'date_added' column
+head(df$date_added,5) # this column is originally in 'Month Day, Year' format
+class(df$date_added) # column class: character
+
+df$date_added <- sub(".*(\\d+{4}).*$", "\\1", df$date_added) # convert date to year
+head(df$date_added,5) # this column now only has year data
+
+# total number of movies and TV shows added to Netflix by year
+year <- df %>%
+  filter(!(date_added == "")) %>% # remove missing values
+  group_by(date_added) %>%
+  summarise(count = n()) # number of movies and TV shows by year added to Netflix
+year
+
+# draw a bar plot for number of contents added to Netflix by year
+bar <- ggplot(year, aes(x = date_added, y = count, fill = date_added)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = count), vjust = -0.3) +
+  labs(x = "Year", fill = "Year", title = "Number of Contents added to Netflix by Year") + 
+  theme(plot.title = element_text(hjust = 0.5)) # center title
+bar
+
+# Netflix trends - movie vs TV shows
+group <- df %>%
+  filter(!(date_added == "")) %>%
+  group_by(type, date_added) %>% # group by content type and year added
+  summarise(count = n())
+group
+
+# create bar plot for number of contents added by year by content type
+bar <- ggplot(group, aes(x = date_added, y = count, fill = type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Netflix Trends by Year", x = "Year", "Type") + 
+  theme(plot.title = element_text(hjust = 0.5)) # center title
+bar
+```
+
+First bar plot shows the total number of movies and TV shows added on Netflix by year. After years of adding more contents each year, Netflix finally added less number of contents to its platform in 2020.
+
+Second chart compares its trend in movies to that of TV shows. Although the number of movies added to Netflix outnumbers that of TV shows on Netflix, it started to show a decrease in 2020, whereas number of TV shows added has continued to increase. This may be an indication of Netflix focusing more on TV shows.
+
+
+#### Movie vs TV show
+
+This section will show total number of movies and TV shows on Netflix.
+
+```{r type, include=T}
+# create data frame for number of contents by type
+type <- df %>%
+  group_by(type) %>%
+  summarise(count = n())
+type
+
+#all plots created afterwards will have title at center
+#theme_update(plot.title = element_text(hjust = 0.5)) 
+
+# create bar plot for Netflix contents by type
+bar <- ggplot(type, aes(x = type, y = count, fill = type)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = count), vjust = -0.3) +
+  labs(title = "Netflix contents by type", x = "Type", fill = "Type") + # add title
+  theme(plot.title = element_text(hjust = 0.5)) # center title
+bar
+
+# create data frames each for movies and TV shows for further analysis
+movie <- df[(df$type == "Movie"),]
+tv <- df[(df$type == "TV Show"),]
+```
+
+As shown in the chart above, the number of movies on Netflix is more than double the number of TV shows.
+
+For further analysis on each content type, the dataset has been split down into two separate datasets based on the 'type' column.
+
+
+#### Netflix Movie Analysis
+
+The remaining of this project will examine movies on Netflix. The dataset 'movie' that has been created above will be used.
+
+
+#### Top 10 Countries by number of movies on Netflix
+
+In order to identify top 10 countries by number of movies, the 'country' column has been pre-processed. Originally, there were some movies that has listed multiple countries as their origin - for example, the movie '100 meters' had 'Portugal, Spain' in its 'country' column. This created too many unique values for 'country' column. Therefore, I split the country name value whenever there was a comma in between them, and removed the comma and unnecessary blank spaces. At the end, I was able to retrieve clean list of country names.
+
+1) Bar plot
+```{r country, include=T}
+# basic information about movies on Netflix
+length(unique(movie$country)) # country column has many duplicates
+head(movie$country, 50) # some movies has listed multiple countries separated by comma
+
+# split comma separated country names
+country <- unlist(strsplit(movie$country, ", ")) # split country names at comma
+unique(country) # some country names has comma at the end
+
+# remove leftover commas from country names
+country <- gsub(",","", country)
+unique(country)
+
+# store the list as data frame
+movie_country <- data.frame(country = country)
+unique(movie_country$country) # it now has clean country names
+
+# count country names appearing in the original dataset
+movie_country <- movie_country %>%
+  group_by(country) %>%
+  summarise(count = n())
+head(movie_country,10)
+
+# top 10 countries by number of movies added to Netflix
+bar <- movie_country %>%
+  arrange(desc(count)) %>% # most to least
+  slice(1:10) %>% # top 10 countries
+  ggplot(., aes(x=reorder(country,-count), y = count)) + # bar plot most to least
+  geom_bar(stat='identity') + 
+  theme_classic() +
+  labs(x = "Country", title = "Top 10 Countries by number of movies on Netflix") +
+  geom_text(aes(label = count), vjust = -0.3) # add count labels
+
+bar
+```
+
+Above chart shows top 10 countries by number of movies on Netflix. According to this chart, the United States had the most number of movies on Netflix.
+
+2) World Map
+```{r map, include, results='hide'}
+spdf <- joinCountryData2Map(movie_country, joinCode="NAME", nameJoinColumn="country")
+mapParams <- mapCountryData(spdf,
+               nameColumnToPlot="count",
+               catMethod=c(0,1,3,5,10,50,100,300,500,1000,2500),
+               mapTitle = "Number of Movies added to Netflix",
+               addLegend = FALSE)
+do.call(addMapLegend, c(mapParams, legendLabels="all", legendWidth=0.5))
+```
+
+A world map has been created to visualize Netflix's global trend. Continent-wise, Americas - North and South America - exhibits high number of Netflix movies overall. Africa showed the least number of movies on Netflix.
+
+
+#### Number of movies by Year
+
+This section will study Netflix's preference for country of origin for movies. This will be done by creating a line graph for number of movies from 5 countries by year. Note that it uses movies' date added on Netflix for the time variable. This study has no relation to the amount of movie production done in each country.
+
+```{r countbyyear}
+genre_country <- movie %>% 
+  mutate(listed_in = strsplit(as.character(listed_in), ", ")) %>% # separate genre by commas
+  unnest(listed_in) %>%
+  mutate(country = strsplit(as.character(country), ", ")) %>% # separate country name by commas
+  unnest(country) %>%
+  select("title","country","date_added","listed_in")
+genre_country
+
+unique(genre_country$country) # some country names still have commas
+length(unique(genre_country$country)) # number of unique country names
+unique(genre_country$listed_in) # clean; no leftover commas to be deleted
+
+genre_country <- genre_country %>%
+  mutate(country = gsub(",","",country)) # remove commas by replacing them with space
+genre_country
+
+unique(genre_country$country) # commas removed from country names
+length(unique(genre_country$country))
+
+movie_year <- genre_country %>%
+#  mutate(date_added = as.numeric(date_added)) %>%
+  filter(country == "United States" |
+           country == "India"| 
+           country == "United Kingdom"| 
+           country == "Canada"| 
+           country == "France") %>%
+  group_by(country, date_added) %>%
+  summarise(count = n())
+movie_year
+
+#bar <- ggplot(genre_5_country, aes(fill=listed_in, y=count, x=country)) + 
+#    geom_bar(position="fill", stat="identity")
+#bar
+
+chart <- ggplot(movie_year, aes(x = date_added, y = count, group = country, color = country)) +
+  geom_line() +
+  labs(x = "Year", y = "Count", fill = "Country", title = "Number of movies by Year in Top 5 Countries") +
+  theme(plot.title = element_text(hjust = 0.5)) # center title
+chart <- ggplotly(chart)
+chart
+```
+
+
+The line graph above shows the number of movies added on Netflix by year for 5 different countries. The country legends on the right enables select and deselect - you can only look at the countries you want. While the number of movies from all 5 countries are on a downturn recently, the graph suggests that Netflix has been adding less number of Indian movies on their platform since 2018, as opposed to 2019 for American and British film and 2020 for French and Canadian film.
+
+
+#### Netflix movie genre trends by year
+
+This section will research Netflix movie genre trends by examining which genre has been the most popular in which year. I will use 'listed in' column for genre and 'date_added' for date of movies added on Netflix.
+
+Similar pre-processing methodology for 'country' column will be used for 'listed in' column. The genre values in 'listed in' column will be split down at commas. After cleaning, there was a total of 20 genre.
+
+I will create 2 bar charts - an interactive stacked bar chart for comparison of changes of one genre over time and a static percentage stacked bar chart
+
+```{r genrebyyear, include=T}
+head(movie$listed_in,10) # each movie has multiple genres separated by commas
+
+movie_genre <- movie %>% 
+  mutate(listed_in = strsplit(as.character(listed_in), ", ")) %>% # split genre column by comma
+  unnest(listed_in) %>%
+  select("title","date_added","listed_in")
+movie_genre
+
+unique(movie_genre$listed_in) # all Netflix genre
+length(unique(movie_genre$listed_in)) # total of 20 genre
+
+movie_genre <- movie_genre %>%
+  group_by(date_added, listed_in) %>%
+  summarise(count = n()) # count number of genres by year
+movie_genre
+
+# interactive stacked bar chart
+bar <- ggplot(movie_genre, aes(fill=listed_in, y=count, x=date_added)) + 
+  geom_bar(position="stack", stat="identity") +
+  labs (x = "Year", fill = "Genre", title = "Movie Genre by Year") +
+  theme(plot.title = element_text(hjust = 0.5)) # center title
+bar <- ggplotly(bar)
+bar
+
+# percent stacked bar chart
+bar <- ggplot(movie_genre, aes(fill=listed_in, y=count, x=date_added)) + 
+  geom_bar(position="fill", stat="identity") +
+  labs (x = "Year", y = "Percent", fill = "Genre", title = "Movie Genre by Year") +
+  theme(plot.title = element_text(hjust = 0.5)) # center title
+bar
+```
+
+
+First graph is stacked bar chart for all genre by year. You can de-select all but one to see one genre's change over time.
+
+Second graph is the percentage stacked barchart for Netflix movie genre. The graph clearly illustrates Netflix having more variety of genre in their movie collection. In addition, the percentage of international and LGBTQ movie genre - bar in light blue color on the graph -  has been increasing since 2014. This clearly indicates that Netflix has been putting a lot of effort in promoting diversity in their film collection over time.
+
+
+#### Movie genre popularity in Top 5 countries by number of movies on Netflix
+
+This section will study movie genre popularity in top 5 countries - United States, India, United Kingdom, Canada, and France. Percentage stacked bar chart and donut chart will be created for visualization.
+
+```{r genrebycountry, include = TRUE}
+# Movie genre by percentage in top 5 countries
+genre_5_country <- genre_country %>%
+  filter(country == "United States" |
+           country == "India"| 
+           country == "United Kingdom"| 
+           country == "Canada"| 
+           country == "France") %>%
+  group_by(country, listed_in) %>%
+  summarise(count = n())
+
+# Percentage stacked bar chart
+bar <- ggplot(genre_5_country, aes(fill=listed_in, y=count, x=country)) + 
+  geom_bar(position="fill", stat="identity") +
+  labs (x = "Country", y = "Percent", fill = "Genre", title = "Movie Genre by Country") +
+  theme(plot.title = element_text(hjust = 0.5)) # center title
+bar
+
+# genre donut chart for each country
+# https://homepage.divms.uiowa.edu/~luke/classes/STAT4580/catone.html
+pie <- ggplot(genre_5_country) +
+  geom_col(aes(x = 1, y = count, fill = listed_in), position = "fill") +
+  coord_polar(theta = "y") +
+  labs(title = "Movie Genre", fill = "Genre") +
+  facet_wrap(~ country) +
+  theme_bw() +
+  theme(axis.title = element_blank(), # remove axis and grid lines
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank())
+
+pie <- pie + xlim(0, 1.5)
+pie
+
+# donut chart for movie genre in United States
+genre_usa <- genre_country %>%
+  filter(country == "United States") %>%
+  group_by(country, listed_in) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+# donut chart
+pie <- ggplot(genre_usa) +
+  geom_col(aes(x = 1, y = count, fill = reorder(listed_in,count)), position = "fill") +
+  coord_polar(theta = "y", start = 0) +
+  labs(title = "Movie Genre in United States", fill = "Genre") +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  facet_wrap(~ country) +
+  theme_bw() +
+  theme(axis.title = element_blank(), # remove axis and grid lines
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank())
+
+pie <- pie + xlim(0, 1.5)
+pie
+
+```
+
+First and second chart shows the distribution of movie genre in top 5 countries. Among the five countries, very large portion of French and Indian movies were categorized as international movies on Netflix. Only a small amount of American movies has been categorized as international film, and this all come down to the fact that Netflix originated from United States. In addition, France and India - two countries Netflix identified as foreign - showed weaker genre diversity on Netflix compared to United States. Therefore, increasing genre diversity in foreign movies on Netflix may be the next step Netflix will make within the next few years.
+
+
+
+
