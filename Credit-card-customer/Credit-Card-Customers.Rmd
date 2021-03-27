@@ -1,0 +1,329 @@
+---
+title: "Credit Card Customer Analysis"
+output: 
+  html_document:
+    keep_md: true
+---
+
+### Loading Packages
+
+```{r package, include=TRUE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#load required packages
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(Hmisc)
+library(knitr)
+library(kableExtra)
+```
+
+### Basic Data Description
+
+For the purpose of this project, a dataset that consists of credit card customer information has been retrieved from Kaggle.
+
+```{r setup, include=TRUE}
+df <- read.csv("BankChurners.csv", stringsAsFactors = F) #read data
+length(df) # number of observations in original dataset
+
+#remove columns that contain "Naive"
+df <- df %>%
+  select(-contains('Naive'))
+
+length(df) #number of observations in new dataset
+
+names(df) #check column names
+
+summary(df) # summary statistics
+
+#check the number of unique client number
+length(unique(df[,"CLIENTNUM"])) # total rows are 10127, so there is no duplicates in client number
+
+#check for the number of NA, missing values for each column
+sapply(df, function(x) sum(is.na(x) | x == "")) # no such values
+
+```
+
+The original dataset had 10127 rows and 23 columns. As suggested from the author of dataset, the last two columns containing the word "Naive" has been removed from the dataset, resulting a dataset with 10127 rows and 21 columns. There was no duplicated values in 'CLIENTNUM' column. There was no NA or missing values in the data set that needs to be cleaned.
+
+### Outlier Removal
+
+This section will focus on removing outliers from the dataset to produce statistically significant results. Scatter plot for each column will be created to identify existing outliers.
+
+```{r outlier}
+cols <- colnames(df) # column names
+cols <- cols[-1] # exclude 'CLIENTNUM' column from outlier removal process
+par(mfrow=c(4,5))
+for (i in cols){
+  plot <- ggplot(df, aes_string(x = df$CLIENTNUM, y = i)) + geom_point()
+  print(plot)
+}
+```
+
+Looking at the scatter plot of each column, I could observe some outlier data points on a few columns - 'Customer_Age', 'Tota_Amt_Chng_Q4_Q1', 'Total_Ct_Chng_Q4_Q1'.
+
+```{r removal, results = 'hide'}
+# identify and remove outliers using box plots
+df1 <- df[!(df$Customer_Age %in% boxplot(df$Customer_Age)$out),]
+df1 <- df[!(df$Total_Amt_Chng_Q4_Q1 %in% boxplot(df$Total_Amt_Chng_Q4_Q1)$out),]
+df1 <- df[!(df$Total_Ct_Chng_Q4_Q1 %in% boxplot(df$Total_Ct_Chng_Q4_Q1)$out),]
+```
+
+```{r remove}
+cols <- colnames(df1) # column names
+cols <- cols[-1] # exclude 'CLIENTNUM' column from outlier removal process
+par(mfrow=c(4,5))
+for (i in cols){
+    plot <- ggplot(df1, aes_string(x = df1$CLIENTNUM, y = i)) +
+    geom_point()
+    print(plot)
+}
+
+#par(mfrow=c(2,7))
+#attach(df1)
+#scatter1 <- plot(CLIENTNUM, Customer_Age)
+#scatter2 <- plot(CLIENTNUM, Dependent_count)
+#scatter3 <- plot(CLIENTNUM, Months_on_book)
+#scatter4 <- plot(CLIENTNUM, Total_Relationship_Count)
+#scatter5 <- plot(CLIENTNUM, Months_Inactive_12_mon)
+#scatter6 <- plot(CLIENTNUM, Contacts_Count_12_mon)
+#scatter7 <- plot(CLIENTNUM, Credit_Limit)
+#scatter8 <- plot(CLIENTNUM, Total_Revolving_Bal)
+#scatter9 <- plot(CLIENTNUM, Avg_Open_To_Buy)
+#scatter10 <- plot(CLIENTNUM, Total_Amt_Chng_Q4_Q1)
+#scatter11 <- plot(CLIENTNUM, Total_Trans_Amt)
+#scatter12 <- plot(CLIENTNUM, Total_Trans_Ct)
+#scatter13 <- plot(CLIENTNUM, Total_Ct_Chng_Q4_Q1)
+#scatter14 <- plot(CLIENTNUM, Avg_Utilization_Ratio)
+```
+
+```{r dddd, include=FALSE}
+#delete this part?
+#boxplot showing outliers
+par(mfrow=c(2,7))
+boxplot(df$Customer_Age, ylab = "Customer_Age")
+boxplot(df$Dependent_count, ylab = "Dependent_count")
+boxplot(df$Months_on_book, ylab = "Months_on_book")
+boxplot(df$Total_Relationship_Count, ylab = "Total_Relationship_Count")
+boxplot(df$Months_Inactive_12_mon, ylab = "Months_Inactive_12_mon")
+boxplot(df$Contacts_Count_12_mon, ylab = "Contacts_Count_12_mon")
+boxplot(df$Credit_Limit, ylab = "Credit_Limit")
+boxplot(df$Total_Revolving_Bal, ylab = "Total_Revolving_Bal")
+boxplot(df$Avg_Open_To_Buy, ylab = "Avg_Open_To_Buy")
+boxplot(df$Total_Amt_Chng_Q4_Q1, ylab = "Total_Amt_Chng_Q4_Q1")
+boxplot(df$Total_Trans_Amt, ylab = "Total_Trans_Amt")
+boxplot(df$Total_Trans_Ct, ylab = "Total_Trans_Ct")
+boxplot(df$Total_Ct_Chng_Q4_Q1, ylab = "Total_Ct_Chng_Q4_Q1")
+boxplot(df$Avg_Utilization_Ratio, ylab = "Avg_Utilization_Ratio")
+
+# remove outliers
+#df1 <- df[!(df$Customer_Age %in% boxplot(df$Customer_Age)$out),]
+
+outlier <- boxplot(df$Customer_Age)$out
+df1 <- df[!(df$Customer_Age %in% outlier),]
+outlier <- boxplot(df$Months_on_book)$out
+df1 <- df[!(df$Months_on_book %in% outlier),]
+outlier <- boxplot(df$Months_Inactive_12_mon)$out
+df1 <- df[!(df$Months_Inactive_12_mon %in% outlier),]
+outlier <- boxplot(df$Contacts_Count_12_mon)$out
+df1 <- df[!(df$Contacts_Count_12_mon %in% outlier),]
+outlier <- boxplot(df$Credit_Limit)$out
+df1 <- df[!(df$Credit_Limit %in% outlier),]
+outlier <- boxplot(df$Avg_Open_To_Buy)$out
+df1 <- df[!(df$Avg_Open_To_Buy %in% outlier),]
+outlier <- boxplot(df$Total_Amt_Chng_Q4_Q1)$out
+df1 <- df[!(df$Total_Amt_Chng_Q4_Q1 %in% outlier),]
+outlier <- boxplot(df$Total_Trans_Amt)$out
+df1 <- df[!(df$Total_Trans_Amt %in% outlier),]
+outlier <- boxplot(df$Total_Trans_Ct)$out
+df1 <- df[!(df$Total_Trans_Ct %in% outlier),]
+outlier <- boxplot(df$Total_Ct_Chng_Q4_Q1)$out
+df1 <- df[!(df$Total_Ct_Chng_Q4_Q1 %in% outlier),]
+
+dev.new()
+nrow(df1)
+par(mfrow=c(2,7))
+boxplot(df1$Customer_Age, ylab = "Customer_Age")
+boxplot(df1$Dependent_count, ylab = "Dependent_count")
+boxplot(df1$Months_on_book, ylab = "Months_on_book")
+boxplot(df1$Total_Relationship_Count, ylab = "Total_Relationship_Count")
+boxplot(df1$Months_Inactive_12_mon, ylab = "Months_Inactive_12_mon")
+boxplot(df1$Contacts_Count_12_mon, ylab = "Contacts_Count_12_mon")
+boxplot(df1$Credit_Limit, ylab = "Credit_Limit")
+boxplot(df1$Total_Revolving_Bal, ylab = "Total_Revolving_Bal")
+boxplot(df1$Avg_Open_To_Buy, ylab = "Avg_Open_To_Buy")
+boxplot(df1$Total_Amt_Chng_Q4_Q1, ylab = "Total_Amt_Chng_Q4_Q1")
+boxplot(df1$Total_Trans_Amt, ylab = "Total_Trans_Amt")
+boxplot(df1$Total_Trans_Ct, ylab = "Total_Trans_Ct")
+boxplot(df$Total_Ct_Chng_Q4_Q1, ylab = "Total_Ct_Chng_Q4_Q1")
+boxplot(df1$Avg_Utilization_Ratio, ylab = "Avg_Utilization_Ratio")
+
+#https://stackoverflow.com/questions/49044753/scale-kable-table-to-fit-page-width
+#kable(head(df,5), format = "latex") %>%
+#  kable_styling(latex_options = "scale_down")
+#dt <- df[1:10,]
+#dt <- dt %>%
+#  kbl() %>%
+#  kable_styling(latex_options = "scale_down") 
+#dt
+```
+
+### Binning
+
+Some of the columns in the dataset consists of continuous variables, and that will need some transformation before further analysis. The following section will show the process of binning continuous variables into specific groups.
+
+
+#### Age
+
+The original 'Customer_Age' column is made of continuous age variables ranging from 20 to 80. In this section, the variable will be categorized into a total of 6 groups.
+
+```{r age, echo=TRUE}
+min(df1$Customer_Age) # minimum value of 'Customer_Age' column
+max(df1$Customer_Age) # maximum value
+age_labels <- c("20-29","30-39","40-49","50-59","60-69","70+") # define groups
+df2 <- df1 %>% # break 'Customer_Age' column data into defined groups and store it as a new column
+  mutate(Age = cut(Customer_Age,
+                   breaks = c(20,30,40,50,60,70,80), 
+                   right = F, 
+                   labels = age_labels)) 
+
+#check the age binning by looking at 10 randomly chosen data subset
+age_check <- df2 %>%
+  select(c(Customer_Age,Age)) %>%
+  sample_n(10)
+
+age_check # correctly done!
+
+#remove continuous age value column
+df2 <- df2 %>%
+  relocate(Age, .after = Customer_Age) %>%
+  select(-Customer_Age)
+
+df2[1:5,] # check
+```
+
+#### Number of Dependents
+
+This section will categorize the 'Dependent_count' column which consists of number of dependents data into 4 different groups. 
+```{r dependent, echo=TRUE}
+min(df2$Dependent_count) # min value of 'Dependent_count' column
+max(df2$Dependent_count) # max value
+dependent_labels <- c("0","1-2","3-4","5+") # define binning groups
+df2 <- df2 %>% # break the column into defined groups of data and store it as a new column
+  mutate(Dependent_Count = cut(Dependent_count,
+                               breaks = c(0,1,3,5,10), 
+                               right = F, 
+                               labels = dependent_labels)) 
+
+#check the dependent count binning by looking at randomly chosen data subset
+dependent_check <- df2 %>%
+  select(c(Dependent_count,Dependent_Count)) %>%
+  sample_n(10)
+
+dependent_check
+
+df2 <- df2 %>% #remove continuous dependent count value column
+  relocate(Dependent_Count, .after = Dependent_count) %>%
+  select(-Dependent_count)
+df2[1:5,] # check
+```
+
+### Create Tables for Analysis
+
+The following section will examine and compare quantitative values, and look for any meaningful insights from the data set.
+
+#### Gender and Age
+
+In this section, the dataset has been grouped by gender and age. I then calculated the mean utilization ratio for each group to compare the spending nature of different gender and age groups.
+
+```{r genderage, echo=TRUE}
+#group by biography info - gender and age - for utilization ratio comparison
+summary <- df2 %>%
+  group_by(Gender, Age) %>%
+  summarise(count = n(), # count the number of data for each group
+            mean_util_ratio = mean(Avg_Utilization_Ratio)) # calculate mean utilization ratio for each group
+kable(summary)
+```
+
+The 70+ age male group had mean utilization ratio of 0.46 which is very high compared to the mean ratio of other customer groups that were in the range of 0.19-0.37. However, the group only had 1 number of observations. Also, since there is no 70+ female credit card customer in our data set, there is no group to compare the 70+ male group against. Therefore, 70+ male group will be excluded from comparison analysis.
+
+Overall, male credit card customers exhibited lower credit utilization ratio compared to that of female credit card customers. Utilization ratio is the amount of money you've been using on credit divided by your credit limit - expressed as percentages. Therefore, the above table suggests that the female customers are more likely to use high amount of revolving credit compared with their credit limit. This may indicate that males are doing better job managing their credit, and that females are overspending more than males.
+
+The credit card customers in their twenties exhibited the highest utilization ratio among all age groups. This was true for both male and female. Also, the customers in their forties exhibited the lowest utilization ratio among all. This may indicate that people in their forties in general are better at managing credit compared to other age groups, while people in their twenties are doing worst at it.
+ 
+#### Marital status
+
+In this section, the data set will be grouped by their marital status.
+
+```{r married, echo=TRUE}
+#group by family info - marital status - for comparison
+summary2 <- df2 %>%
+  group_by(Marital_Status) %>%
+  summarise(mean_inactive_12_months = mean(Months_Inactive_12_mon),
+            mean_util_ratio = mean(Avg_Utilization_Ratio))
+kable(summary2)
+```
+
+The group with unknown marital status will be excluded from analysis due to their lack of information. The 'Months_Inactive_12_mon' column in the original dataset shows how likely is a person to stay inactive for 12 months on their credit card. Therefore, the 'mean_inactive_12_months' column in the table created above shows the same thing but for each group with different marital status. According to the table, the married exhibited lowest number of 2.331089 for 'mean_inactive_12_months' whereas the divorced exhibited the highest number of 2.356354. This suggests that the married are least likely to be inactive for 12 months. The married also had the highest credit utilization ratio, suggesting they tend to spend more compared to divorced or single credit card customers.
+
+#### Dependents
+
+This section will have the data set grouped by the number of dependents. 
+
+```{r dependents, echo=TRUE}
+#group by number of dependents
+summary3 <- df2 %>%
+  group_by(Dependent_Count) %>%
+  summarise(mean_revolving_balance = mean(Total_Revolving_Bal),
+            mean_util_ratio = mean(Avg_Utilization_Ratio), 
+            mean_trans_count = mean(Total_Trans_Ct))
+kable(summary3)
+```
+
+The revolving balance is the amount of unpaid credit card spending at the end of billing cycle. The mean revolving balance increased in proportion to the number of dependents, although there was a slight decrease in revolving balance for the group with 3-4 dependents. This suggests that credit card customers with more number of dependents are more likely to have hard time paying off their credit card.
+
+As opposed to the revolving balance, the credit utilization ratio was in inverse proportion to the number of dependents. Group of card customers with no dependents exhibited the highest utilization ratio. This indicates that people with no dependents spend credit card more compared to people with dependents. 
+
+In summary, the credit card users with many dependents are having hard time paying off their credit card back, although they are better at managing credit card and keeping the spending low.
+
+#### Card Class
+
+The data set will be grouped by card categories in this section.
+
+```{r card, echo=TRUE}
+#group by card info 
+#calculated revolving balance percentage for better comparison
+summary4 <- df2 %>%
+  group_by(Card_Category) %>%
+  summarise(mean_credit_limit = mean(Credit_Limit), # mean credit value for each card group
+            mean_revolving_balance = mean(Total_Revolving_Bal), # mean revolving balance for each group
+            # calculate unpaid credit balance (revolving balance) / total credit limit - in percentages
+            revolving_balance_perc = (mean_revolving_balance/mean_credit_limit)*100,
+            mean_util_ratio = mean(Avg_Utilization_Ratio)*100) %>% # mean utilization ratio in percentages
+  arrange(match(Card_Category, c("Blue","Silver","Platinum","Gold"))) # in the order of least to most prestigious card type
+kable(summary4)
+```
+
+The utilization ratio shown in the 'mean_util_ratio' is the used amount divided by total credit limit. As opposed to that, the 'revolving_balance_perc' I calculated is the revolving balance divided by total credit limit. In short, the former shows the percentage amount of your credit card spending, whereas the latter shows how much you couldn't pay off your spending amount at the end of the billing cycle. 
+
+Overall, the revolving balance/credit limit and the utilization ratio exhibited same patterns. They were both high for blue cards, and low for all other card types - but lowest for platinum. The utilization ratio was about 29% for blue card customers. However, the customers with silver, platinum, and gold cards have utilization ratio in the range of 4%-6%, as opposed to the 29% for blue card customers. This suggests that customers with blue cards, which is the least prestigious card type, tend to use the card a lot compared to customers with different card types, and the customers with other card types spend much less on their credit card. 
+
+The revolving balance/credit limit was about 15% for blue card customers, which is about half of the utilization ratio. For other card type customers, the revolving balance/credit limit is only slightly lower than their utilization ratio. This suggests that blue card customers are doing better job managing their credit by paying off their debt on time.
+
+#### Education Level
+
+In this section, the data will be grouped by education level.
+
+```{r education, echo=TRUE}
+#group by education level for comparison of credit limit and revolving balance
+summary5 <- df2 %>%
+  group_by(Education_Level) %>%
+  summarise(mean_credit_limit = mean(Credit_Limit), mean_revolving_balance = mean(Total_Revolving_Bal)) %>%
+  arrange(match(Education_Level, c("Doctorate","Post-Graduate","Graduate","College",
+                                   "High School","Uneducated","Unknown")))
+kable(summary5)
+```
+
+Surprisingly, there was no clear patterns in credit limits across different education level. Uneducated and post-graduate customers had higher credit limit than other groups of people. The amount of revolving balance was similar for all groups but doctorate level - customers with doctorate degrees exhibited lowest revolving balance. This suggests that they - with the highest education level - pays off their credit card debt the best.
+
+
