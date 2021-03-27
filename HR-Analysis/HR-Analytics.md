@@ -420,85 +420,8 @@ pie <- ggplot(sex, aes(x = "", y = percent, fill = reorder(gender,percent))) +
             position = position_stack(vjust = .5), size = 2.3) +
   coord_polar("y", start = 0) +
   labs(fill = "Gender", title = "Gender Composition") +
-  theme(plot.title = element_text(hjust = 0.5)) # center title
+  theme(plot.title = element_text(hjust = 0.5)) + # center title
   guides(fill = guide_legend(reverse = TRUE)) # reverse order of legend
-```
-
-```
-## $fill
-## $title
-## list()
-## attr(,"class")
-## [1] "waiver"
-## 
-## $title.position
-## NULL
-## 
-## $title.theme
-## NULL
-## 
-## $title.hjust
-## NULL
-## 
-## $title.vjust
-## NULL
-## 
-## $label
-## [1] TRUE
-## 
-## $label.position
-## NULL
-## 
-## $label.theme
-## NULL
-## 
-## $label.hjust
-## NULL
-## 
-## $label.vjust
-## NULL
-## 
-## $keywidth
-## NULL
-## 
-## $keyheight
-## NULL
-## 
-## $direction
-## NULL
-## 
-## $override.aes
-## named list()
-## 
-## $nrow
-## NULL
-## 
-## $ncol
-## NULL
-## 
-## $byrow
-## [1] FALSE
-## 
-## $reverse
-## [1] TRUE
-## 
-## $order
-## [1] 0
-## 
-## $available_aes
-## [1] "any"
-## 
-## $name
-## [1] "legend"
-## 
-## attr(,"class")
-## [1] "guide"  "legend"
-## 
-## attr(,"class")
-## [1] "guides"
-```
-
-```r
 pie
 ```
 

@@ -68,7 +68,7 @@ pie <- ggplot(sex, aes(x = "", y = percent, fill = reorder(gender,percent))) +
             position = position_stack(vjust = .5), size = 2.3) +
   coord_polar("y", start = 0) +
   labs(fill = "Gender", title = "Gender Composition") +
-  theme(plot.title = element_text(hjust = 0.5)) # center title
+  theme(plot.title = element_text(hjust = 0.5)) + # center title
   guides(fill = guide_legend(reverse = TRUE)) # reverse order of legend
 pie
 ```

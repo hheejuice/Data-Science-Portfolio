@@ -24,7 +24,7 @@ For better portfolio browsing experience, please check out [Portfolio](https://h
       *Used Packages: tidyverse, dplyr, ggplot2, Hmisc, knitr, kableExtra*
 
 * ### Machine Learning
-  * [House Price Prediction project using ML Linear Regression and K-Nearest Neighbors](Housing-Price-Prediction/Housing-Price-Prediction.md): ndflnfln
+  * [House Price Prediction Project using ML Linear Regression, K-Nearest Neighbors and Decision Tree](Housing-Price-Prediction/Housing-Price-Prediction.md): ndflnfln
     
       *Used Packages: caret, tree, class, psych, corrplot, psych*
       
