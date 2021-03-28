@@ -18,15 +18,15 @@ For better portfolio browsing experience, please check out [Portfolio](https://h
   
     <img src="Netflix-Analysis/Netflix-Analysis_files/figure-html/genrebyyear-2.png" width="250"> <img src="Netflix-Analysis/Netflix-Analysis_files/figure-html/genrebycountry-2.png" width="250">  
 
-  * [HR Analysis](HR-Analysis/HR-Analytics.md): dfsdfddd
+  * [HR Analysis](HR-Analysis/HR-Analytics.md): When hiring data scientists, it is important for companies to know which of their candidates are willing to work for them after training. It helps them reduce costs and time associated with training session. In this project, I will perform EDA (Exploratory Data Analysis) on data scientist candidate data, and look for insights that could be helpful for company with their hiring decision.
   
       *Used Packages: tidyverse, dplyr, ggplot2, Hmisc, scales*
+      
+      *Key findings:* fadfas
 
-  <img src="HR-Analysis/HR-Analytics_files/figure-html/exp-1.png" width="250"> \ <img src="HR-Analysis/HR-Analytics_files/figure-html/yearexp-1.png" width="250">
+    <img src="HR-Analysis/HR-Analytics_files/figure-html/exp-1.png" width="250"> \ <img src="HR-Analysis/HR-Analytics_files/figure-html/yearexp-1.png" width="250">
   
-  <img src="HR-Analysis/HR-Analytics_files/figure-html/type-2.png" width="250"> <img src="HR-Analysis/HR-Analytics_files/figure-html/type-3.png" width="250">
-  
-
+    <img src="HR-Analysis/HR-Analytics_files/figure-html/type-2.png" width="250"> <img src="HR-Analysis/HR-Analytics_files/figure-html/type-3.png" width="250">
   
   * [Credit Card Customer Analysis](Credit-card-customer/Credit-Card-Customers.md): outlier removal, data binning
   
