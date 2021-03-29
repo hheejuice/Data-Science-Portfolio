@@ -35,7 +35,7 @@ For better portfolio browsing experience, please check out [Portfolio](https://h
       *Key findings:* Credit card customers in their twenties are worst at managing credit compared to other age groups, and women tend to overspend more than men. The project also suggests that the credit card users with many dependents usually have hard time paying off their credit card back, although they are better at managing credit card and keeping the spending low. The customers with blue cards, which is the least prestigious card type, tend to spend more on the card compared to customers with different card types. However, study suggests that the blue card customers are doing better job managing their credit by paying off their debt on time.
 
 * ### Machine Learning
-  * [House Price Prediction Project using ML Linear Regression, K-Nearest Neighbors and Decision Tree](Housing-Price-Prediction/Housing-Price-Prediction.md): ndflnfln
+  * [House Price Prediction Project using ML Linear Regression, K-Nearest Neighbors and Decision Tree](Housing-Price-Prediction/Housing-Price-Prediction.md): In this project, I developed several predictive models to predict the price of Peruvian and Ecuadorian real estate properties. I compared the house price driving features in both countries by analyzing the effect of each feature on price of properties, and predicted the price of comparable properties in Peru and Ecuador.
     
       *Used Packages: caret, tree, class, psych, corrplot, psych*
       
