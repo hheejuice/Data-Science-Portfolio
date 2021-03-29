@@ -32,7 +32,7 @@ For better portfolio browsing experience, please check out [Portfolio](https://h
   
       *Used Packages: tidyverse, dplyr, ggplot2, Hmisc, knitr, kableExtra*
       
-      *Key findings:* 
+      *Key findings:* Credit card customers in their twenties are worst at managing credit compared to other age groups, and women tend to overspend more than men. The project also suggests that the credit card users with many dependents usually have hard time paying off their credit card back, although they are better at managing credit card and keeping the spending low. The customers with blue cards, which is the least prestigious card type, tend to spend more on the card compared to customers with different card types. However, study suggests that the blue card customers are doing better job managing their credit by paying off their debt on time.
 
 * ### Machine Learning
   * [House Price Prediction Project using ML Linear Regression, K-Nearest Neighbors and Decision Tree](Housing-Price-Prediction/Housing-Price-Prediction.md): ndflnfln
