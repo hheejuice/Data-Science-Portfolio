@@ -22,15 +22,17 @@ For better portfolio browsing experience, please check out [Portfolio](https://h
   
       *Used Packages: tidyverse, dplyr, ggplot2, Hmisc, scales*
       
-      *Key findings:* fadfas
+      *Key findings:* Data scientists in general often look for company change in five-year intervals. Also, those who have less years of experience are more likely to look for another company to work for. This project also highlights that the funding status of a company is one of the important factors for data scientists in their company decision. Many data scientists in startups were willing to continue working given that the company was well funded. 
 
-    <img src="HR-Analysis/HR-Analytics_files/figure-html/exp-1.png" width="250"> \ <img src="HR-Analysis/HR-Analytics_files/figure-html/yearexp-1.png" width="250">
+    <img src="HR-Analysis/HR-Analytics_files/figure-html/exp-1.png" width="250"> <img src="HR-Analysis/HR-Analytics_files/figure-html/yearexp-1.png" width="250">
   
     <img src="HR-Analysis/HR-Analytics_files/figure-html/type-2.png" width="250"> <img src="HR-Analysis/HR-Analytics_files/figure-html/type-3.png" width="250">
   
-  * [Credit Card Customer Analysis](Credit-card-customer/Credit-Card-Customers.md): outlier removal, data binning
+  * [Credit Card Customer Analysis](Credit-card-customer/Credit-Card-Customers.md): This project studies behavior of credit card customers. The data used in this project includes customer demographics and credit card information. In this project, I will show the process of outlier removal and data binning.
   
       *Used Packages: tidyverse, dplyr, ggplot2, Hmisc, knitr, kableExtra*
+      
+      *Key findings:* 
 
 * ### Machine Learning
   * [House Price Prediction Project using ML Linear Regression, K-Nearest Neighbors and Decision Tree](Housing-Price-Prediction/Housing-Price-Prediction.md): ndflnfln
