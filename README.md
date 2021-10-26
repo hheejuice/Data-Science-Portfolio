@@ -1,10 +1,10 @@
 # Data Science Portfolio
 
-This [GitHub Repository](https://github.com/hheejuice/Heeju_Portfolio) includes data analysis and machine learning exploration projects completed by Heeju Son who received a bachelor's degree in Economics from the University of Washington. Each project has been written in R using RStudio, then pushed to the GitHub repository.
+This [GitHub Repository](https://github.com/hheejuice/Portfolio) includes data analysis and machine learning exploration projects completed by Heeju Son who received a bachelor's degree in Economics from the University of Washington. Each project has been written in R using RStudio, then pushed to the GitHub repository.
 
 README.md will highlight key findings of each data analysis projects. Codes and additional analysis are available in repository's subfolder. They also can be accessed by project title hyperlinks.
 
-For better portfolio browsing experience, please check out [Portfolio](https://hheejuice.github.io/Heeju_Portfolio/).
+For better portfolio browsing experience, please check out [Portfolio](https://hheejuice.github.io/Portfolio/).
 
 ## Contents
 * ### Data Analysis and Visualization
@@ -39,12 +39,12 @@ For better portfolio browsing experience, please check out [Portfolio](https://h
     
       *Used Packages: caret, tree, class, psych, corrplot, psych*
       
-  * [project using ML Logistic Regression](https://hheejuice.github.io/Heeju_Portfolio/): ndflnfln
-  * [project using ML Classification](url): ndflnfln
+  * ML Logistic Regression
+  * ML Classification
   * Cluster Analysis
  
 * ### Natural Language Processing
   * Tokenization
   * Stopword Removal
   * Lemmatization & Stemming
-  https://monkeylearn.com/blog/nlp-ai/
+
